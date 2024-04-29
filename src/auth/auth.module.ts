@@ -22,4 +22,4 @@ export const jwtSecret = 'zjP9h6ZI5LoSKCRj';
   controllers: [AuthController],
   providers: [AuthService, PrismaService, JwtStrategy],
 })
-export class AuthModule {}
+export class AuthModule { }

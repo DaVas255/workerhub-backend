@@ -7,7 +7,7 @@ import * as bcrypt from 'bcrypt';
 export const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
     // Проверка существует ли пользователь с таким email или phoneNumber
@@ -20,7 +20,6 @@ export class UserService {
       },
     });
 
-    // Если пользователь уже существует, выбрасываем ошибку
     if (existingUser) {
       throw new ConflictException(
         'Пользователь с таким email или номером телефона уже существует',
@@ -44,7 +43,7 @@ export class UserService {
   }
 
   findOne(id: number) {
-    return this.prisma.user.findUnique({ where: { id: +id } });
+    return this.prisma.user.findUnique({ where: { id: id } });
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
