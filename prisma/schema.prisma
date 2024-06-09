@@ -13,35 +13,56 @@ enum EnumTaskStatus {
   completed
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model Task {
-  id          Int            @id @default(autoincrement())
-  title       String
-  content     String
-  status      EnumTaskStatus @default(open)
-  price       Int
-  date        DateTime
-  city        City           @relation(fields: [cityId], references: [id])
-  cityId      Int            @unique
-  speciality  Speciality     @relation(fields: [specialtyId], references: [id])
-  specialtyId Int            @unique
+  id      Int            @id @default(autoincrement())
+  title   String
+  content String
+  status  EnumTaskStatus @default(open)
+  price   Int
+  date    DateTime
+
+  city   City @relation(fields: [cityId], references: [id])
+  cityId Int  @map("city_id")
+
+  specialty   Speciality @relation(fields: [specialtyId], references: [id])
+  specialtyId Int
+
+  customer   User? @relation("createdTasks", fields: [customerId], references: [id])
+  customerId Int?
+
+  executor   User? @relation("pinnedTasks", fields: [executorId], references: [id])
+  executorId Int?
 }
 
 model User {
-  id          Int              @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   name        String
-  email       String           @unique
+  email       String @unique
   password    String
-  phoneNumber String           @unique
-  city        City             @relation(fields: [cityId], references: [id])
-  cityId      Int              @unique
-  speciality  UserSpeciality[]
-  review      Review[]
+  phoneNumber String @unique
+
+  role Role @default(USER)
+
+  city   City @relation(fields: [cityId], references: [id])
+  cityId Int
+
+  speciality UserSpeciality[]
+
+  review Review[]
+
+  createdTasks Task[] @relation("createdTasks")
+  pinnedTasks  Task[] @relation("pinnedTasks")
 }
 
 model Speciality {
   id   Int    @id @default(autoincrement())
   name String
-  task Task?
+  task Task[]
 
   user UserSpeciality[]
 }
@@ -58,8 +79,8 @@ model UserSpeciality {
 model City {
   id   Int    @id @default(autoincrement())
   name String
-  task Task?
-  user User?
+  task Task[]
+  user User[]
 }
 
 model Review {

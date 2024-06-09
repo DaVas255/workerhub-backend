@@ -14,20 +14,17 @@ export enum TaskStatus {
   accepted = 'accepted',
   completed = 'completed',
 }
-export class CreateTaskDto {
+export class TaskDto {
   @IsString()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   title: string;
 
   @IsString()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   content: string;
 
-  @IsNotEmpty()
   @IsEnum(TaskStatus, {
     message: 'Status must be OPEN, ACCEPTED or COMPLETED',
   })
@@ -36,26 +33,32 @@ export class CreateTaskDto {
   status: TaskStatus;
 
   @IsInt()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   price: number;
 
   @IsDate()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   date: Date;
 
   @IsInt()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   cityId: number;
 
   @IsInt()
-  @IsNotEmpty()
   @ApiProperty()
   @IsOptional()
   specialtyId: number;
+
+  @IsInt()
+  @ApiProperty()
+  @IsOptional()
+  customerId: number;
+
+  @IsInt()
+  @ApiProperty()
+  @IsOptional()
+  executorId: number;
 }

@@ -9,16 +9,15 @@ import {
   Put,
 } from '@nestjs/common';
 import { TaskService } from './task.service';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
+import { TaskDto } from './dto/task.dto';
 
 @Controller('tasks')
 export class TaskController {
-  constructor(private readonly taskService: TaskService) {}
+  constructor(private readonly taskService: TaskService) { }
 
   @Post()
-  create(@Body() createTaskDto: CreateTaskDto) {
-    return this.taskService.create(createTaskDto);
+  create(@Body() TaskDto: TaskDto) {
+    return this.taskService.create(TaskDto);
   }
 
   @Get()
@@ -26,23 +25,29 @@ export class TaskController {
     return this.taskService.findAll();
   }
 
+  @Get('by-city/:cityId')
+  findAllByCity(@Param('cityId') cityId: string) {
+    return this.taskService.findAllByCity(+cityId);
+  }
+
+  @Get('by-specialty/:specialtyId')
+  findAllBySpecialty(@Param('specialtyId') specialtyId: string) {
+    return this.taskService.findAllBySpecialty(+specialtyId);
+  }
+
+  @Get('opens')
+  findAllOpen() {
+    return this.taskService.findAllOpen();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.taskService.findOne(+id);
   }
 
-  @Patch(':id')
-  updateStatus(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.taskService.update(+id, updateTaskDto);
-  }
-
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.taskService.update(+id, updateTaskDto);
+  updateStatus(@Param('id') id: string, @Body() TaskDto: TaskDto) {
+    return this.taskService.toggleStatus(+id, TaskDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.taskService.remove(+id);
-  }
 }

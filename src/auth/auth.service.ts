@@ -1,41 +1,118 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
-} from '@nestjs/common';
-
-import { PrismaService } from 'prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
-import { Auth } from './entities/auth.entity';
-import * as bcrypt from 'bcrypt';
+} from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import { Role } from '@prisma/client'
+import { verify } from 'argon2'
+import { Response } from 'express'
+import { AuthDto } from './dto/auth.dto'
+import { UserService } from 'src/user/user.service'
+import { UserDto } from 'src/user/dto/user.dto'
 
 @Injectable()
 export class AuthService {
+  EXPIRE_DAY_REFRESH_TOKEN = 1
+  REFRESH_TOKEN_NAME = 'refreshToken'
+
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
+    private jwt: JwtService,
+    private userService: UserService
   ) { }
 
-  async login(email: string, password: string): Promise<Auth> {
-    // Step 1: Fetch a user with the given email
-    const user = await this.prisma.user.findUnique({ where: { email: email } });
+  async login(dto: AuthDto) {
+    const { password, ...user } = await this.validateUser(dto)
+    const tokens = await this.issueTokens(user.id, user.role)
 
-    // If no user is found, throw an error
-    if (!user) {
-      throw new NotFoundException(`No user found for email: ${email}`);
-    }
-
-    // Step 2: Check if the password is correct
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    // If password does not match, throw an error
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
-    }
-
-    // Step 3: Generate a JWT containing the user's ID and return it
     return {
-      accessToken: this.jwtService.sign({ userId: user.id }),
-    };
+      user,
+      ...tokens,
+    }
+  }
+
+  async register(dto: UserDto) {
+    const oldUser = await this.userService.getByEmail(dto.email)
+
+    if (oldUser) throw new BadRequestException('User already exists')
+
+    const { password, ...user } = await this.userService.create(dto)
+
+    const tokens = await this.issueTokens(user.id, user.role)
+
+    return {
+      user,
+      ...tokens,
+    }
+  }
+
+  async getNewTokens(refreshToken: string) {
+    const result = await this.jwt.verifyAsync(refreshToken)
+    if (!result) throw new UnauthorizedException('Invalid refresh token')
+
+    const { password, ...user } = await this.userService.getById(result.id)
+
+    const tokens = await this.issueTokens(user.id, user.role)
+
+    return {
+      user,
+      ...tokens,
+    }
+  }
+
+  //генерация токенов
+  private async issueTokens(userId: number, role?: Role) {
+    const data = { id: userId, role }
+
+    const accessToken = this.jwt.sign(data, {
+      expiresIn: '1h',
+    })
+
+    const refreshToken = this.jwt.sign(data, {
+      expiresIn: '7d',
+    })
+
+    return { accessToken, refreshToken }
+  }
+
+  private async validateUser(dto: AuthDto) {
+    const user = await this.userService.getByEmail(dto.email)
+
+    if (!user) throw new UnauthorizedException('Email or password invalid')
+
+    const isValid = await verify(user.password, dto.password)
+
+    if (!isValid) throw new UnauthorizedException('Email or password invalid')
+
+    return user
+  }
+
+  addRefreshTokenToResponse(res: Response, refreshToken: string) {
+    const expiresIn = new Date()
+    expiresIn.setDate(expiresIn.getDate() + this.EXPIRE_DAY_REFRESH_TOKEN)
+
+    res.cookie(this.REFRESH_TOKEN_NAME, refreshToken, {
+      httpOnly: true,
+      domain: 'localhost',
+      expires: expiresIn,
+      // true if production
+      secure: true,
+      // lax if production
+      sameSite: 'none',
+    })
+  }
+
+  removeRefreshTokenFromResponse(res: Response) {
+    res.cookie(this.REFRESH_TOKEN_NAME, '', {
+      httpOnly: true,
+      domain: 'localhost',
+      expires: new Date(0),
+      // true if production
+      secure: true,
+      // lax if production
+      sameSite: 'none',
+    })
   }
 }

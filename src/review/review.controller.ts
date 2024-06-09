@@ -16,8 +16,4 @@ export class ReviewController {
     return await this.reviewService.findAllByUserId(+userId);
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.reviewService.findOne(+id);
-  // }
 }

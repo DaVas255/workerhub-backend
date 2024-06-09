@@ -1,21 +1,19 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UserDto } from './dto/user.dto';
 import { PrismaService } from 'prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+import { hash } from 'argon2'
 
 export const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) { }
 
-  async create(createUserDto: CreateUserDto) {
-    // Проверка существует ли пользователь с таким email или phoneNumber
+  async create(dto: UserDto) {
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
-          { email: createUserDto.email },
-          { phoneNumber: createUserDto.phoneNumber },
+          { email: dto.email },
+          { phoneNumber: dto.phoneNumber },
         ],
       },
     });
@@ -26,37 +24,45 @@ export class UserService {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(
-      createUserDto.password,
-      roundsOfHashing,
-    );
-    createUserDto.password = hashedPassword;
+    const hashedPassword = await hash(dto.password)
+    dto.password = hashedPassword;
 
-    // Создаем пользователя
     return this.prisma.user.create({
-      data: createUserDto,
+      data: dto,
     });
   }
 
-  findAll() {
-    return this.prisma.user.findMany();
+  getUsers() {
+    return this.prisma.user.findMany({
+      select: {
+        name: true,
+        email: true,
+        id: true,
+        password: false,
+      },
+    })
   }
 
-  findOne(id: number) {
+  async getById(id: number) {
     return this.prisma.user.findUnique({ where: { id: id } });
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(
-        updateUserDto.password,
-        roundsOfHashing,
-      );
+  async getByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    })
+  }
+
+  async update(id: number, dto: UserDto) {
+    if (dto.password) {
+      dto.password = await hash(dto.password);
     }
 
     return this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: dto,
     });
   }
 
