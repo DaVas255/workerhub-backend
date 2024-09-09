@@ -11,4 +11,9 @@ export class CityController {
     return this.cityService.findAll();
   }
 
+  @Post()
+  create(@Body() cityDto: CityDto) {
+    return this.cityService.create(cityDto);
+  }
+
 }

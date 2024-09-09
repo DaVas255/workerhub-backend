@@ -10,4 +10,8 @@ export class CityService {
   findAll() {
     return this.prisma.city.findMany();
   }
+
+  create(cityDto: CityDto) {
+    return this.prisma.city.create({ data: cityDto });
+  }
 }

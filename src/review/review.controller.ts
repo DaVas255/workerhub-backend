@@ -6,14 +6,14 @@ import { CreateReviewDto } from './dto/create-review.dto';
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) { }
 
-  @Post()
-  create(@Body() createReviewDto: CreateReviewDto) {
-    return this.reviewService.create(createReviewDto);
-  }
+  // @Post()
+  // create(@Body() createReviewDto: CreateReviewDto) {
+  //   return this.reviewService.create(createReviewDto);
+  // }
 
-  @Get(':userId')
-  async findAllByUserId(@Param('userId') userId: string) {
-    return await this.reviewService.findAllByUserId(+userId);
-  }
+  // @Get(':userId')
+  // async findAllByUserId(@Param('userId') userId: string) {
+  //   return await this.reviewService.findAllByUserId(+userId);
+  // }
 
 }

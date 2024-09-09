@@ -1,1 +1,3 @@
-export class CityDto { }
+export class CityDto {
+  name: string
+}

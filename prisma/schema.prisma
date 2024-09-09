@@ -53,7 +53,7 @@ model User {
 
   speciality UserSpeciality[]
 
-  review Review[]
+  // review Review[]
 
   createdTasks Task[] @relation("createdTasks")
   pinnedTasks  Task[] @relation("pinnedTasks")
@@ -83,11 +83,11 @@ model City {
   user User[]
 }
 
-model Review {
-  id     Int      @id @default(autoincrement())
-  Date   DateTime
-  text   String
-  rating Int
-  user   User     @relation(fields: [userId], references: [id])
-  userId Int
-}
+// model Review {
+//   id     Int      @id @default(autoincrement())
+//   Date   DateTime
+//   text   String
+//   rating Int
+//   user   User     @relation(fields: [userId], references: [id])
+//   userId Int
+// }

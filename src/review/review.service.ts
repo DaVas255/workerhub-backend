@@ -7,15 +7,15 @@ import { PrismaService } from 'prisma/prisma.service';
 export class ReviewService {
   constructor(private prisma: PrismaService) { }
 
-  create(createReviewDto: CreateReviewDto) {
-    return this.prisma.review.create({ data: createReviewDto });
-  }
+  // create(createReviewDto: CreateReviewDto) {
+  //   return this.prisma.review.create({ data: createReviewDto });
+  // }
 
-  async findAllByUserId(userId: number) {
-    return this.prisma.review.findMany({ where: { userId: userId } });
-  }
+  // async findAllByUserId(userId: number) {
+  //   return this.prisma.review.findMany({ where: { userId: userId } });
+  // }
 
-  findOne(id: number) {
-    return this.prisma.review.findUnique({ where: { id: id } });
-  }
+  // findOne(id: number) {
+  //   return this.prisma.review.findUnique({ where: { id: id } });
+  // }
 }
