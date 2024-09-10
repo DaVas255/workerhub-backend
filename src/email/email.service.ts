@@ -15,8 +15,8 @@ export class EmailService {
 		})
 	}
 
-	sendVerification(to: string, verificationLink: string) {
+	async sendVerification(to: string, verificationLink: string) {
 		const html = render(VerificationEmail({ url: verificationLink }))
-		return this.sendEmail(to, 'Подтверждение почты', html)
+		return this.sendEmail(to, 'Подтверждение почты', await html)
 	}
 }

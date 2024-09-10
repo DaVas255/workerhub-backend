@@ -2,6 +2,9 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { UserDto } from './dto/user.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { hash } from 'argon2'
+import { IGoogleProfile } from '@/auth/social-media/social-media-auth.types';
+import { User } from '@prisma/client';
+import { AuthDto } from '@/auth/dto/auth.dto';
 
 export const roundsOfHashing = 10;
 @Injectable()
@@ -55,7 +58,7 @@ export class UserService {
     })
   }
 
-  async update(id: number, dto: UserDto) {
+  async update(id: number, dto: AuthDto) {
     if (dto.password) {
       dto.password = await hash(dto.password);
     }
@@ -68,5 +71,31 @@ export class UserService {
 
   remove(id: number) {
     return this.prisma.user.delete({ where: { id: id } });
+  }
+
+  async findOrCreateSocialUser(profile: IGoogleProfile) {
+    let user = await this.getByEmail(profile.email)
+    if (!user) {
+      user = await this._createSocialUser(profile)
+    }
+    return user
+  }
+
+  private async _createSocialUser(
+    profile: IGoogleProfile
+  ): Promise<User> {
+    const email = profile.email
+    const name = `${profile.firstName} ${profile.lastName}`
+    const picture = profile.picture || ''
+
+    return this.prisma.user.create({
+      data: {
+        email,
+        name,
+        password: '',
+        verificationToken: null,
+        avatarPath: picture
+      }
+    })
   }
 }

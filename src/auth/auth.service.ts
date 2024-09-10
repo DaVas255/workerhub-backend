@@ -1,118 +1,107 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { EmailService } from '@/email/email.service'
+import { PrismaService } from '../../prisma/prisma.service'
+import { UserService } from '@/user/user.service'
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
+	BadRequestException,
+	Injectable,
+	NotFoundException,
+	UnauthorizedException
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
-import { Role } from '@prisma/client'
+import { Role, type User } from '@prisma/client'
 import { verify } from 'argon2'
-import { Response } from 'express'
+import { omit } from 'lodash'
 import { AuthDto } from './dto/auth.dto'
-import { UserService } from 'src/user/user.service'
-import { UserDto } from 'src/user/dto/user.dto'
+import { UserDto } from '@/user/dto/user.dto'
 
 @Injectable()
 export class AuthService {
-  EXPIRE_DAY_REFRESH_TOKEN = 1
-  REFRESH_TOKEN_NAME = 'refreshToken'
+	constructor(
+		private jwt: JwtService,
+		private userService: UserService,
+		private emailService: EmailService,
+		private prisma: PrismaService
+	) { }
 
-  constructor(
-    private jwt: JwtService,
-    private userService: UserService
-  ) { }
+	private readonly TOKEN_EXPIRATION_ACCESS = '1h'
+	private readonly TOKEN_EXPIRATION_REFRESH = '7d'
 
-  async login(dto: AuthDto) {
-    const { password, ...user } = await this.validateUser(dto)
-    const tokens = await this.issueTokens(user.id, user.role)
+	async login(dto: AuthDto) {
+		const user = await this.validateUser(dto)
+		return this.buildResponseObject(user)
+	}
 
-    return {
-      user,
-      ...tokens,
-    }
-  }
+	async register(dto: UserDto) {
+		const userExists = await this.userService.getByEmail(dto.email)
+		if (userExists) {
+			throw new BadRequestException('User already exists')
+		}
+		const user = await this.userService.create(dto)
 
-  async register(dto: UserDto) {
-    const oldUser = await this.userService.getByEmail(dto.email)
+		await this.emailService.sendVerification(
+			user.email,
+			`http://localhost:5173/verify-email?token=${user.verificationToken}`
+		)
 
-    if (oldUser) throw new BadRequestException('User already exists')
+		return this.buildResponseObject(user)
+	}
 
-    const { password, ...user } = await this.userService.create(dto)
+	async getNewTokens(refreshToken: string) {
+		const result = await this.jwt.verifyAsync(refreshToken)
+		if (!result) {
+			throw new UnauthorizedException('Invalid refresh token')
+		}
+		const user = await this.userService.getById(result.id)
+		return this.buildResponseObject(user)
+	}
 
-    const tokens = await this.issueTokens(user.id, user.role)
+	async verifyEmail(token: string) {
+		const user = await this.prisma.user.findFirst({
+			where: {
+				verificationToken: token
+			}
+		})
 
-    return {
-      user,
-      ...tokens,
-    }
-  }
+		if (!user) throw new NotFoundException('Token not exists!')
 
-  async getNewTokens(refreshToken: string) {
-    const result = await this.jwt.verifyAsync(refreshToken)
-    if (!result) throw new UnauthorizedException('Invalid refresh token')
+		await this.userService.update(user.id, {
+			verificationToken: null,
+			email: user.email,
+			password: user.password
+		})
 
-    const { password, ...user } = await this.userService.getById(result.id)
+		return 'Email verified!'
+	}
 
-    const tokens = await this.issueTokens(user.id, user.role)
+	async buildResponseObject(user: User) {
+		const tokens = await this.issueTokens(user.id.toString(), user.role)
+		return { user: this.omitPassword(user), ...tokens }
+	}
 
-    return {
-      user,
-      ...tokens,
-    }
-  }
+	private async issueTokens(userId: string, rights: Role[]) {
+		const payload = { id: userId, rights }
+		const accessToken = this.jwt.sign(payload, {
+			expiresIn: this.TOKEN_EXPIRATION_ACCESS
+		})
+		const refreshToken = this.jwt.sign(payload, {
+			expiresIn: this.TOKEN_EXPIRATION_REFRESH
+		})
+		return { accessToken, refreshToken }
+	}
 
-  //генерация токенов
-  private async issueTokens(userId: number, role?: Role) {
-    const data = { id: userId, role }
+	private async validateUser(dto: AuthDto) {
+		const user = await this.userService.getByEmail(dto.email)
+		if (!user) {
+			throw new UnauthorizedException('Email or password invalid')
+		}
+		const isValid = await verify(user.password, dto.password)
+		if (!isValid) {
+			throw new UnauthorizedException('Email or password invalid')
+		}
+		return user
+	}
 
-    const accessToken = this.jwt.sign(data, {
-      expiresIn: '1m',
-    })
-
-    const refreshToken = this.jwt.sign(data, {
-      expiresIn: '7d',
-    })
-
-    return { accessToken, refreshToken }
-  }
-
-  private async validateUser(dto: AuthDto) {
-    const user = await this.userService.getByEmail(dto.email)
-
-    if (!user) throw new UnauthorizedException('Email or password invalid')
-
-    const isValid = await verify(user.password, dto.password)
-
-    if (!isValid) throw new UnauthorizedException('Email or password invalid')
-
-    return user
-  }
-
-  addRefreshTokenToResponse(res: Response, refreshToken: string) {
-    const expiresIn = new Date()
-    expiresIn.setDate(expiresIn.getDate() + this.EXPIRE_DAY_REFRESH_TOKEN)
-
-    res.cookie(this.REFRESH_TOKEN_NAME, refreshToken, {
-      httpOnly: true,
-      domain: 'localhost',
-      expires: expiresIn,
-      // true if production
-      secure: true,
-      // lax if production
-      sameSite: 'none',
-    })
-  }
-
-  removeRefreshTokenFromResponse(res: Response) {
-    res.cookie(this.REFRESH_TOKEN_NAME, '', {
-      httpOnly: true,
-      domain: 'localhost',
-      expires: new Date(0),
-      // true if production
-      secure: true,
-      // lax if production
-      sameSite: 'none',
-    })
-  }
+	private omitPassword(user: User) {
+		return omit(user, ['password'])
+	}
 }

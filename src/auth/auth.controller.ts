@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -17,48 +18,63 @@ import { CurrentUser } from './decorators/user.decorator'
 import { AuthDto } from './dto/auth.dto'
 import { UserService } from 'src/user/user.service'
 import { UserDto } from 'src/user/dto/user.dto'
+import { Recaptcha } from '@nestlab/google-recaptcha'
+import { RefreshTokenService } from './refresh-token.service'
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly refreshTokenService: RefreshTokenService
   ) { }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
-  @Post('login')
+  @Recaptcha()
+  @Post('auth/login')
   async login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...response } = await this.authService.login(dto)
 
-    this.authService.addRefreshTokenToResponse(res, refreshToken)
+    this.refreshTokenService.addRefreshTokenToResponse(res, refreshToken)
 
     return response
   }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
-  @Post('register')
+  @Recaptcha()
+  @Post('auth/register')
   async register(
     @Body() dto: UserDto,
     @Res({ passthrough: true }) res: Response
   ) {
     const { refreshToken, ...response } = await this.authService.register(dto)
-    this.authService.addRefreshTokenToResponse(res, refreshToken)
+    this.refreshTokenService.addRefreshTokenToResponse(res, refreshToken)
     return response
   }
 
   @HttpCode(200)
-  @Post('login/access-token')
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token?: string) {
+    if (!token) {
+      throw new UnauthorizedException('Token not passed')
+    }
+
+    return this.authService.verifyEmail(token)
+  }
+
+  @HttpCode(200)
+  @Post('auth/access-token')
   async getNewTokens(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response
   ) {
     const refreshTokenFromCookies =
-      req.cookies[this.authService.REFRESH_TOKEN_NAME]
+      req.cookies[this.refreshTokenService.REFRESH_TOKEN_NAME]
 
     if (!refreshTokenFromCookies) {
-      this.authService.removeRefreshTokenFromResponse(res)
+      this.refreshTokenService.removeRefreshTokenFromResponse(res)
       throw new UnauthorizedException('Refresh token not passed')
     }
 
@@ -66,28 +82,16 @@ export class AuthController {
       refreshTokenFromCookies
     )
 
-    this.authService.addRefreshTokenToResponse(res, refreshToken)
+    this.refreshTokenService.addRefreshTokenToResponse(res, refreshToken)
 
     return response
   }
 
   @HttpCode(200)
-  @Post('logout')
+  @Post('auth/logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    this.authService.removeRefreshTokenFromResponse(res)
+    this.refreshTokenService.removeRefreshTokenFromResponse(res)
 
     return true
-  }
-
-  @Auth()
-  @Get('profile')
-  async getProfile(@CurrentUser('id') id: number) {
-    return this.userService.getById(id)
-  }
-
-  @Auth('ADMIN')
-  @Get('users')
-  async getList() {
-    return this.userService.getUsers()
   }
 }
