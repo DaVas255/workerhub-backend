@@ -48,7 +48,7 @@ model User {
   password          String
   phoneNumber       String? @unique
   verificationToken String? @default(cuid()) @map("verification_token")
-  role              Role[]  @default([USER])
+  rights            Role[]  @default([USER])
   avatarPath        String?
 
   city   City? @relation(fields: [cityId], references: [id])
