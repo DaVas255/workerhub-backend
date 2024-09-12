@@ -38,10 +38,10 @@ export class AuthService {
 		}
 		const user = await this.userService.create(dto)
 
-		await this.emailService.sendVerification(
-			user.email,
-			`http://localhost:5173/verify-email?token=${user.verificationToken}`
-		)
+		// await this.emailService.sendVerification(
+		// 	user.email,
+		// 	`http://localhost:5173/verify-email?token=${user.verificationToken}`
+		// )
 
 		return this.buildResponseObject(user)
 	}
@@ -74,7 +74,7 @@ export class AuthService {
 	}
 
 	async buildResponseObject(user: User) {
-		const tokens = await this.issueTokens(user.id.toString(), user.role)
+		const tokens = await this.issueTokens(user.id.toString(), user.rights)
 		return { user: this.omitPassword(user), ...tokens }
 	}
 

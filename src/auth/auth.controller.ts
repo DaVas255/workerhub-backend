@@ -32,7 +32,7 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Recaptcha()
-  @Post('auth/login')
+  @Post('login')
   async login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...response } = await this.authService.login(dto)
 
@@ -44,11 +44,13 @@ export class AuthController {
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Recaptcha()
-  @Post('auth/register')
+  @Post('register')
   async register(
     @Body() dto: UserDto,
     @Res({ passthrough: true }) res: Response
   ) {
+    dto.cityId = +dto.cityId
+
     const { refreshToken, ...response } = await this.authService.register(dto)
     this.refreshTokenService.addRefreshTokenToResponse(res, refreshToken)
     return response
@@ -65,7 +67,7 @@ export class AuthController {
   }
 
   @HttpCode(200)
-  @Post('auth/access-token')
+  @Post('access-token')
   async getNewTokens(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response
@@ -88,7 +90,7 @@ export class AuthController {
   }
 
   @HttpCode(200)
-  @Post('auth/logout')
+  @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     this.refreshTokenService.removeRefreshTokenFromResponse(res)
 

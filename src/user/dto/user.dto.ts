@@ -28,7 +28,6 @@ export class UserDto {
   @ApiProperty()
   phoneNumber: string;
 
-  @IsInt()
   @ApiProperty()
   cityId: number;
 }

@@ -1,23 +1,36 @@
+import { SocialMediaAuthController } from '@/auth/social-media/social-media-auth.controller'
+import { SocialMediaAuthService } from '@/auth/social-media/social-media-auth.service'
+import { GoogleStrategy } from '@/auth/strategies/google.strategy'
+import { EmailModule } from '@/email/email.module'
+import { PrismaService } from './../../prisma/prisma.service'
+import { UserModule } from '@/user/user.module'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { JwtModule } from '@nestjs/jwt'
 import { getJwtConfig } from 'src/config/jwt.config'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
+import { RefreshTokenService } from './refresh-token.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
-import { PrismaService } from 'prisma/prisma.service'
-import { UserService } from 'src/user/user.service'
 
 @Module({
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UserService, PrismaService],
   imports: [
-    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: getJwtConfig,
+      useFactory: getJwtConfig
     }),
+    UserModule,
+    EmailModule
   ],
+  controllers: [AuthController, SocialMediaAuthController],
+  providers: [
+    JwtStrategy,
+    PrismaService,
+    AuthService,
+    RefreshTokenService,
+    GoogleStrategy,
+    SocialMediaAuthService
+  ]
 })
 export class AuthModule { }
