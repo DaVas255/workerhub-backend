@@ -43,7 +43,7 @@ model Task {
 
 model User {
   id                Int     @id @default(autoincrement())
-  name              String
+  name              String?
   email             String  @unique
   password          String
   phoneNumber       String? @unique
@@ -52,7 +52,7 @@ model User {
   avatarPath        String?
 
   city   City? @relation(fields: [cityId], references: [id])
-  cityId Int
+  cityId Int?
 
   speciality UserSpeciality[]
 

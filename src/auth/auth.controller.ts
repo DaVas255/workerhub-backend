@@ -46,10 +46,9 @@ export class AuthController {
   @Recaptcha()
   @Post('register')
   async register(
-    @Body() dto: UserDto,
+    @Body() dto: AuthDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    dto.cityId = +dto.cityId
 
     const { refreshToken, ...response } = await this.authService.register(dto)
     this.refreshTokenService.addRefreshTokenToResponse(res, refreshToken)

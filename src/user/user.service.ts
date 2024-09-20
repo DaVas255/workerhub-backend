@@ -11,12 +11,11 @@ export const roundsOfHashing = 10;
 export class UserService {
   constructor(private prisma: PrismaService) { }
 
-  async create(dto: UserDto) {
+  async create(dto: AuthDto) {
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
           { email: dto.email },
-          { phoneNumber: dto.phoneNumber },
         ],
       },
     });

@@ -31,7 +31,7 @@ export class AuthService {
 		return this.buildResponseObject(user)
 	}
 
-	async register(dto: UserDto) {
+	async register(dto: AuthDto) {
 		const userExists = await this.userService.getByEmail(dto.email)
 		if (userExists) {
 			throw new BadRequestException('User already exists')
